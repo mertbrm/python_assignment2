@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Personal Finance API Demo</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0f172a;
+      --panel: #111827;
+      --muted: #cbd5e1;
+      --accent: #10b981;
+      --accent-2: #f59e0b;
+      --text: #e2e8f0;
+      --border: #1f2937;
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      font-family: "Space Grotesk", "Segoe UI", sans-serif;
+      background: radial-gradient(circle at 20% 20%, rgba(16, 185, 129, 0.12), transparent 25%),
+                  radial-gradient(circle at 80% 0%, rgba(245, 158, 11, 0.12), transparent 30%),
+                  var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+    }
+    header {
+      padding: 32px 24px 8px;
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+    h1 { margin: 0 0 8px; font-size: 32px; letter-spacing: -0.5px; }
+    p.lead { margin: 0; color: var(--muted); max-width: 780px; }
+    main { max-width: 1080px; margin: 16px auto 48px; padding: 0 24px; display: grid; gap: 16px; }
+    section { background: var(--panel); border: 1px solid var(--border); border-radius: 12px; padding: 16px; }
+    section h2 { margin: 0 0 8px; font-size: 18px; }
+    label { display: block; margin: 6px 0 2px; font-size: 14px; color: var(--muted); }
+    input, select, button {
+      width: 100%;
+      padding: 10px;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: #0b1222;
+      color: var(--text);
+      font-size: 14px;
+    }
+    input:focus, select:focus { outline: 2px solid var(--accent); }
+    form { display: grid; gap: 10px; }
+    button {
+      background: linear-gradient(90deg, var(--accent), var(--accent-2));
+      border: none;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 120ms ease, box-shadow 120ms ease;
+    }
+    button:hover { transform: translateY(-1px); box-shadow: 0 10px 20px rgba(0,0,0,0.25); }
+    .row { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 12px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+    th, td { padding: 8px; border-bottom: 1px solid var(--border); text-align: left; }
+    th { color: var(--muted); font-weight: 500; }
+    .pill { display: inline-block; padding: 4px 8px; border-radius: 999px; background: #0b1222; border: 1px solid var(--border); }
+    pre { background: #0b1222; border: 1px solid var(--border); padding: 12px; border-radius: 10px; overflow: auto; }
+    .status { margin-top: 8px; color: var(--muted); font-size: 14px; min-height: 20px; }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Personal Finance API</h1>
+    <p class="lead">Simple one-page UI to create accounts, record transactions and income, view stats, and forecast income. All calls go to the Flask API running locally.</p>
+  </header>
+
+  <main>
+    <section>
+      <div class="row">
+        <div>
+          <h2>Create Account</h2>
+          <form id="account-form">
+            <label for="acc-name">Name</label>
+            <input id="acc-name" name="name" placeholder="Wallet" required />
+            <label for="acc-currency">Currency</label>
+            <input id="acc-currency" name="currency" placeholder="USD" required />
+            <button type="submit">Save account</button>
+          </form>
+          <div class="status" id="account-status"></div>
+        </div>
+        <div>
+          <h2>Accounts</h2>
+          <table>
+            <thead>
+              <tr><th>ID</th><th>Name</th><th>Currency</th></tr>
+            </thead>
+            <tbody id="accounts-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Transactions</h2>
+      <div class="row">
+        <form id="transaction-form">
+          <label for="tr-account">Account</label>
+          <select id="tr-account" required></select>
+          <label for="tr-date">Date</label>
+          <input id="tr-date" type="date" required />
+          <label for="tr-amount">Amount</label>
+          <input id="tr-amount" type="number" step="0.01" required />
+          <label for="tr-type">Type</label>
+          <select id="tr-type">
+            <option value="expense">Expense</option>
+            <option value="income">Income</option>
+          </select>
+          <label for="tr-category">Category</label>
+          <input id="tr-category" placeholder="food" />
+          <label for="tr-note">Note</label>
+          <input id="tr-note" placeholder="groceries" />
+          <button type="submit">Add transaction</button>
+        </form>
+        <div>
+          <h3 style="margin-top:0;">Recent Transactions</h3>
+          <table>
+            <thead><tr><th>Date</th><th>Account</th><th>Type</th><th>Amount</th><th>Category</th></tr></thead>
+            <tbody id="transactions-table"></tbody>
+          </table>
+          <div class="status" id="transaction-status"></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Income</h2>
+      <div class="row">
+        <form id="income-form">
+          <label for="inc-account">Account</label>
+          <select id="inc-account" required></select>
+          <label for="inc-date">Date</label>
+          <input id="inc-date" type="date" required />
+          <label for="inc-amount">Amount</label>
+          <input id="inc-amount" type="number" step="0.01" required />
+          <label for="inc-source">Source</label>
+          <input id="inc-source" placeholder="salary" />
+          <button type="submit">Add income</button>
+        </form>
+        <div>
+          <h3 style="margin-top:0;">Income Records</h3>
+          <table>
+            <thead><tr><th>Date</th><th>Account</th><th>Amount</th><th>Source</th></tr></thead>
+            <tbody id="income-table"></tbody>
+          </table>
+          <div class="status" id="income-status"></div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Statistics</h2>
+      <div class="row">
+        <form id="stats-form">
+          <label for="stats-kind">Dataset</label>
+          <select id="stats-kind">
+            <option value="transactions">Transactions</option>
+            <option value="income">Income</option>
+          </select>
+          <label for="stats-from">From (YYYY-MM-DD)</label>
+          <input id="stats-from" type="date" />
+          <label for="stats-to">To (YYYY-MM-DD)</label>
+          <input id="stats-to" type="date" />
+          <button type="submit">Get summary</button>
+        </form>
+        <div>
+          <h3 style="margin-top:0;">Summary</h3>
+          <pre id="stats-output">{}</pre>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h2>Income Forecast</h2>
+      <div class="row">
+        <form id="forecast-form">
+          <label for="forecast-months">Months ahead</label>
+          <input id="forecast-months" type="number" min="1" value="3" />
+          <button type="submit">Forecast</button>
+        </form>
+        <div>
+          <h3 style="margin-top:0;">Result</h3>
+          <pre id="forecast-output">{}</pre>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const api = {
+      accounts: "/accounts",
+      transactions: "/transactions",
+      income: "/income",
+      statsSummary: "/stats/summary",
+      incomeForecast: "/stats/income_forecast",
+    };
+
+    const els = {
+      accountsTable: document.getElementById("accounts-table"),
+      accountStatus: document.getElementById("account-status"),
+      accountForm: document.getElementById("account-form"),
+      trAccount: document.getElementById("tr-account"),
+      trTable: document.getElementById("transactions-table"),
+      trStatus: document.getElementById("transaction-status"),
+      trForm: document.getElementById("transaction-form"),
+      incAccount: document.getElementById("inc-account"),
+      incTable: document.getElementById("income-table"),
+      incStatus: document.getElementById("income-status"),
+      incForm: document.getElementById("income-form"),
+      statsForm: document.getElementById("stats-form"),
+      statsOutput: document.getElementById("stats-output"),
+      forecastForm: document.getElementById("forecast-form"),
+      forecastOutput: document.getElementById("forecast-output"),
+    };
+
+    async function fetchJson(url, options = {}) {
+      const res = await fetch(url, options);
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || res.statusText);
+      }
+      return res.json();
+    }
+
+    function fillAccountsSelect(accounts) {
+      const makeOptions = (select) => {
+        select.innerHTML = accounts
+          .map((a) => `<option value="${a.id}">${a.id} — ${a.name}</option>`)
+          .join("");
+      };
+      makeOptions(els.trAccount);
+      makeOptions(els.incAccount);
+    }
+
+    async function loadAccounts() {
+      const data = await fetchJson(api.accounts);
+      els.accountsTable.innerHTML = data
+        .map((a) => `<tr><td>${a.id}</td><td>${a.name}</td><td>${a.currency}</td></tr>`)
+        .join("");
+      fillAccountsSelect(data);
+    }
+
+    async function loadTransactions() {
+      const data = await fetchJson(api.transactions);
+      els.trTable.innerHTML = data
+        .slice(-10)
+        .map((t) => `<tr><td>${t.date}</td><td>${t.account_id}</td><td><span class="pill">${t.type}</span></td><td>${t.amount}</td><td>${t.category || ""}</td></tr>`)
+        .join("");
+    }
+
+    async function loadIncome() {
+      const data = await fetchJson(api.income);
+      els.incTable.innerHTML = data
+        .slice(-10)
+        .map((i) => `<tr><td>${i.date}</td><td>${i.account_id}</td><td>${i.amount}</td><td>${i.source || ""}</td></tr>`)
+        .join("");
+    }
+
+    els.accountForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = document.getElementById("acc-name").value.trim();
+      const currency = document.getElementById("acc-currency").value.trim();
+      try {
+        await fetchJson(api.accounts, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name, currency }),
+        });
+        els.accountStatus.textContent = "Saved";
+        e.target.reset();
+        await loadAccounts();
+      } catch (err) {
+        els.accountStatus.textContent = err.message;
+      }
+    });
+
+    els.trForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = {
+        account_id: parseInt(els.trAccount.value, 10),
+        date: document.getElementById("tr-date").value,
+        amount: parseFloat(document.getElementById("tr-amount").value),
+        type: document.getElementById("tr-type").value,
+        category: document.getElementById("tr-category").value,
+        note: document.getElementById("tr-note").value,
+      };
+      try {
+        await fetchJson(api.transactions, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        els.trStatus.textContent = "Added";
+        e.target.reset();
+        await loadTransactions();
+      } catch (err) {
+        els.trStatus.textContent = err.message;
+      }
+    });
+
+    els.incForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const payload = {
+        account_id: parseInt(els.incAccount.value, 10),
+        date: document.getElementById("inc-date").value,
+        amount: parseFloat(document.getElementById("inc-amount").value),
+        source: document.getElementById("inc-source").value,
+      };
+      try {
+        await fetchJson(api.income, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload),
+        });
+        els.incStatus.textContent = "Added";
+        e.target.reset();
+        await loadIncome();
+        await loadTransactions();
+      } catch (err) {
+        els.incStatus.textContent = err.message;
+      }
+    });
+
+    els.statsForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const kind = document.getElementById("stats-kind").value;
+      const from = document.getElementById("stats-from").value;
+      const to = document.getElementById("stats-to").value;
+      const params = new URLSearchParams();
+      if (from) params.append("from", from);
+      if (to) params.append("to", to);
+      params.append("kind", kind);
+      try {
+        const summary = await fetchJson(`${api.statsSummary}?${params.toString()}`);
+        els.statsOutput.textContent = JSON.stringify(summary, null, 2);
+      } catch (err) {
+        els.statsOutput.textContent = err.message;
+      }
+    });
+
+    els.forecastForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const months = document.getElementById("forecast-months").value;
+      try {
+        const data = await fetchJson(`${api.incomeForecast}?months=${months}`);
+        els.forecastOutput.textContent = JSON.stringify(data, null, 2);
+      } catch (err) {
+        els.forecastOutput.textContent = err.message;
+      }
+    });
+
+    async function init() {
+      try {
+        await loadAccounts();
+      } catch (err) {
+        els.accountStatus.textContent = err.message;
+      }
+      await Promise.allSettled([loadTransactions(), loadIncome()]);
+    }
+
+    init();
+  </script>
+</body>
+</html>
